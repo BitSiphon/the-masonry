@@ -4,3 +4,6 @@ allowBuilds:
 onlyBuiltDependencies:
   - esbuild
   - workerd
+overrides:
+  sharp: 0.35.4
+minimumReleaseAge: 10080
