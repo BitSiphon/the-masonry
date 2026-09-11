@@ -1,433 +1,502 @@
 ---
-export const prerender = true;
+import { env } from "cloudflare:workers";
+import { site } from "@/data/site";
+import Base from "@/layouts/Base.astro";
+import { type GalleryBucket, getPhotos, isLocalHost } from "@/lib/gallery";
+import { imageUrl, srcset } from "@/lib/images";
 
-import "@/styles/global.css";
-import PublicNavbar from "@/components/Navbar.astro";
-import GridBackground from "@/components/GridBackground.astro";
-import { CldImage } from "astro-cloudinary";
-import {
-    Camera,
-    Code2,
-    ArrowRight,
-    Aperture,
-    FileUser,
-    Drone,
-} from "lucide-react";
+const bucket = env.GALLERY as GalleryBucket;
+const photos = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname) });
 
-const btnBase =
-    "group relative inline-flex h-11 items-center justify-center gap-2 overflow-hidden rounded-md border px-8 text-sm font-medium transition-all duration-300 hover:ring-1 hover:ring-ring";
-const btnPrimary = `${btnBase} border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary`;
-const btnSecondary = `${btnBase} border-border bg-background/50 text-muted-foreground hover:bg-accent hover:text-foreground`;
+const heroKey = site.heroImageKey;
+const drone = photos.find((i) => i.id.includes("DJI")) ?? photos[0];
+const featured = photos.slice(0, 6);
+const banner = featured[0];
+const grid = featured.slice(1);
 
-const heroImage = "sp6_ogh3om";
+const specs = [
+    ["WORK", "Developer · Drone pilot · Photographer"],
+    ["MAJOR", "Electrical and computer engineering"],
+    ["SCHOOL", "The Ohio State University"],
+    ["LOCATION", "Columbus, Ohio"],
+];
 ---
 
-<html lang="en" class="dark">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap"
-            rel="stylesheet"
-        />
+<Base
+    title="Home"
+    description="Brock Shaffer, electrical and computer engineering student, drone pilot, and photographer."
+>
+    <section class="hero">
+        <div class="wrap hero__inner">
+            <div class="hero__body">
+                <p class="label"><span class="idx">00</span> Portfolio</p>
+                <h1 class="hero__name">
+                    BROCK<br />SHAFFER
+                </h1>
 
-        <title>Brock Shaffer</title>
-
-        <script
-            is:inline
-            src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
-        ></script>
-    </head>
-
-    <body
-        class="bg-background text-foreground overflow-x-hidden selection:bg-primary/30 selection:text-primary-foreground"
-    >
-        <main class="min-h-screen relative flex flex-col items-center">
-            <!--Critical Components-->
-            <GridBackground />
-            <PublicNavbar />
-
-            <!--Hero Section-->
-            <section
-                class="relative flex min-h-[90vh] w-full flex-col items-center justify-center pt-24 pb-12 px-4 md:px-6 max-w-[1400px] mx-auto"
-            >
-                <div
-                    class="text-center space-y-6 mb-12 animate-in fade-in slide-in-from-bottom-8 duration-1000"
-                >
-                    <div
-                        class="flex items-center justify-center gap-4 text-xs md:text-sm font-mono text-muted-foreground tracking-widest uppercase opacity-80"
+                <div class="hero__actions">
+                    <a class="btn btn--primary" href="/gallery">Gallery</a>
+                    <a class="btn btn--ghost" href="/resume.pdf" download>
+                        Resume
+                    </a>
+                    <a
+                        class="btn btn--ghost"
+                        href={site.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
                     >
-                        <span class="flex items-center align-middle gap-1"
-                            ><Code2 size={14} /> Developer</span
-                        >
-                        <span class="text-border">|</span>
-                        <span class="flex items-center align-middle gap-1"
-                            ><Drone size={14} /> Drone Pilot</span
-                        >
-                        <span class="text-border">|</span>
-                        <span class="flex items-center align-middle gap-1"
-                            ><Camera size={14} /> Photographer</span
-                        >
-                    </div>
+                        GitHub
+                    </a>
+                </div>
 
-                    <h1
-                        class="text-6xl md:text-8xl font-bold tracking-tighter text-foreground"
-                    >
-                        BROCK SHAFFER
-                    </h1>
+                <dl class="hero__spec">
+                    {
+                        specs.map(([k, v]) => (
+                            <div class="hero__spec-row">
+                                <dt>{k}</dt>
+                                <dd>{v}</dd>
+                            </div>
+                        ))
+                    }
+                </dl>
+            </div>
 
-                    <p
-                        class="max-w-[500px] mx-auto text-lg text-muted-foreground/80 font-light leading-relaxed"
-                    >
-                        Crafting logic in code and capturing moments in light.
-                        <span class="hidden md:block"
-                            >Precision in every pixel and parameter.</span
-                        >
+            <figure class="hero__fig">
+                <div class="hero__frame">
+                    <img
+                        src={imageUrl(heroKey, {
+                            width: 1200,
+                            format: "auto",
+                            quality: "high",
+                        })}
+                        srcset={srcset(heroKey, [800, 1200, 1600, 2000], {
+                            format: "auto",
+                            quality: "high",
+                        })}
+                        sizes="(max-width: 899px) 100vw, 55vw"
+                        alt="Portrait of Brock Shaffer"
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                    />
+                </div>
+                <figcaption class="hero__cap">
+                    <span class="yellow">PORTRAIT</span>
+                    <span>JPEG</span>
+                </figcaption>
+            </figure>
+        </div>
+    </section>
+
+    {
+        photos.length > 0 && (
+            <section class="wrap section" id="photos">
+                <div class="section__head">
+                    <p class="label">
+                        <span class="idx">01</span> Photography
                     </p>
-
-                    <div class="flex flex-wrap justify-center gap-4 pt-4">
-                        <a
-                            href="https://github.com/CodedMasonry"
-                            class={btnPrimary}
-                        >
-                            <span>Resume</span>
-                            <FileUser
-                                size={16}
-                                className="opacity-60 transition-transform group-hover:-translate-y-0.5"
-                            />
-                        </a>
-                        <a
-                            href="https://github.com/CodedMasonry"
-                            class={btnSecondary}
-                        >
-                            <span>Projects</span>
-                            <Code2
-                                size={16}
-                                className="opacity-60 transition-transform group-hover:-translate-y-0.5"
-                            />
-                        </a>
-                        <a href="photos" class={btnSecondary}>
-                            <span>Gallery</span>
-                            <Aperture
-                                size={16}
-                                className="opacity-60 transition-transform group-hover:rotate-45"
-                            />
-                        </a>
-                    </div>
-                </div>
-
-                <!--Hero Image-->
-                <div
-                    class="relative w-11/12 lg:w-full max-w-6xl group perspective-1000 animate-in fade-in slide-in-from-bottom-10 duration-500 delay-200"
-                >
-                    <div
-                        class="absolute -top-4 -left-4 w-8 h-8 border-t-2 border-l-2 border-primary/30 transition-all duration-500 group-hover:border-primary group-hover:-top-5 group-hover:-left-5"
-                    >
-                    </div>
-                    <div
-                        class="absolute -top-4 -right-4 w-8 h-8 border-t-2 border-r-2 border-primary/30 transition-all duration-500 group-hover:border-primary group-hover:-top-5 group-hover:-right-5"
-                    >
-                    </div>
-                    <div
-                        class="absolute -bottom-4 -left-4 w-8 h-8 border-b-2 border-l-2 border-primary/30 transition-all duration-500 group-hover:border-primary group-hover:-bottom-5 group-hover:-left-5"
-                    >
-                    </div>
-                    <div
-                        class="absolute -bottom-4 -right-4 w-8 h-8 border-b-2 border-r-2 border-primary/30 transition-all duration-500 group-hover:border-primary group-hover:-bottom-5 group-hover:-right-5"
-                    >
-                    </div>
-
-                    <div
-                        class="relative aspect-video md:aspect-21/9 w-full overflow-hidden bg-muted/20 border border-border/50 shadow-2xl"
-                    >
-                        <div
-                            class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 pointer-events-none text-[10px] md:text-xs font-mono tracking-wider text-muted-foreground/70 mix-blend-difference"
-                        >
-                            <div class="flex flex-col gap-1">
-                                <span>REC.709</span>
-                                <span>RAW_VIEWER.BIN</span>
-                            </div>
-                            <div class="flex gap-4">
-                                <span>ISO 120</span>
-                                <span>1/60s</span>
-                                <span>f/2.8</span>
-                            </div>
-                        </div>
-
-                        <CldImage
-                            src={heroImage}
-                            alt="Portfolio Highlight"
-                            width={1920}
-                            height={1080}
-                            sizes="90vw"
-                            loading="eager"
-                            fetchpriority="high"
-                            quality="auto"
-                            format="auto"
-                            class="h-full w-full object-cover opacity-90 transition-transform duration-[2s] ease-out group-hover:scale-[1.02]"
-                        />
-
-                        <div
-                            class="absolute inset-0 bg-black/10 pointer-events-none z-10 bg-size-[4px_4px] bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.2)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))]"
-                        >
-                        </div>
-                    </div>
-
-                    <div
-                        class="flex justify-between items-center mt-2 px-1 text-xs font-mono text-muted-foreground/60"
-                    >
-                        <span>[001] MAIN_ENTRY</span>
-                        <span>39.9612° N, 82.9988° W</span>
-                    </div>
-                </div>
-            </section>
-
-            <section
-                class="relative flex w-full flex-col items-center justify-center pt-24 pb-12 px-4 md:px-6 max-w-[1400px] mx-auto"
-            >
-                <h2
-                    class="text-2xl md:text-5xl font-semibold tracking-tighter text-foreground"
-                >
-                    FINDING BEAUTY IN DETAILS
-                </h2>
-                <div
-                    class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-10 md:mt-16"
-                >
                     <a
-                        href="/photos"
-                        class="relative aspect-video w-full group overflow-hidden border border-border/50 bg-muted/20 hover:border-primary/50 transition-colors duration-300"
+                        class="btn btn--ghost"
+                        href="/gallery"
+                        data-astro-prefetch="false"
                     >
-                        <CldImage
-                            src="DJI_20240801201214_0045_D_vtzl3w"
-                            alt="Downtown Dublin Ohio"
-                            width={768}
-                            height={432}
-                            sizes="(max-width: 768px) 90vw, 30vw"
-                            quality="auto"
-                            format="auto"
-                            class="h-full w-full object-cover opacity-90 transition-transform duration-700 ease-out group-hover:scale-[1.05] group-hover:opacity-100"
+                        All photos
+                    </a>
+                </div>
+                <div class="strip">
+                    <a
+                        class="strip__item strip__item--banner"
+                        href={`/gallery/${banner.id}`}
+                        style="--reveal-delay: 0ms"
+                    >
+                        <img
+                            src={imageUrl(banner.key, {
+                                width: 1400,
+                                format: "auto",
+                                quality: "medium-high",
+                            })}
+                            srcset={srcset(banner.key, [640, 960, 1400], {
+                                format: "auto",
+                                quality: "medium-high",
+                            })}
+                            sizes="(max-width: 640px) 100vw, 100vw"
+                            alt={banner.id}
+                            loading="lazy"
+                            decoding="async"
                         />
-                        <div
-                            class="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors duration-500"
-                        >
-                        </div>
-
-                        <div
-                            class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-                        <div
-                            class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-
-                        <div
-                            class="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end text-white/90 font-mono text-xs md:text-sm mix-blend-difference"
-                        >
-                            <span class="font-medium text-shadow-sm"
-                                >DRONE / CITYSCAPE</span
-                            >
-                            <ArrowRight
-                                size={16}
-                                className="transition-transform group-hover:translate-x-1"
-                            />
-                        </div>
+                        <span class="strip__idx">01</span>
                     </a>
 
-                    <a
-                        href="/projects"
-                        class="relative aspect-video w-full group overflow-hidden border border-border/50 bg-muted/20 hover:border-primary/50 transition-colors duration-300"
-                    >
-                        <CldImage
-                            src="DJI_20251108110602_0075_D_j0ie3e"
-                            alt="Suburban Columbus Ohio"
-                            width={768}
-                            height={432}
-                            sizes="(max-width: 768px) 90vw, 30vw"
-                            quality="auto"
-                            format="auto"
-                            class="h-full w-full object-cover opacity-90 transition-transform duration-700 ease-out group-hover:scale-[1.05] group-hover:opacity-100"
-                        />
-                        <div
-                            class="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors duration-500"
+                    {grid.map((p, i) => (
+                        <a
+                            class="strip__item"
+                            href={`/gallery/${p.id}`}
+                            style={`--reveal-delay: ${(i + 1) * 60}ms`}
                         >
-                        </div>
-
-                        <div
-                            class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-                        <div
-                            class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-
-                        <div
-                            class="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end text-white/90 font-mono text-xs md:text-sm mix-blend-difference"
-                        >
-                            <span class="font-medium text-shadow-sm"
-                                >PHOTO / CITYSCAPE</span
-                            >
-                            <ArrowRight
-                                size={16}
-                                className="transition-transform group-hover:translate-x-1"
+                            <img
+                                src={imageUrl(p.key, {
+                                    width: 480,
+                                    height: 360,
+                                    fit: "cover",
+                                    gravity: "auto",
+                                    format: "auto",
+                                    quality: "medium-low",
+                                })}
+                                srcset={srcset(p.key, [320, 480, 720], {
+                                    height: 360,
+                                    fit: "cover",
+                                    gravity: "auto",
+                                    format: "auto",
+                                    quality: "medium-low",
+                                })}
+                                sizes="(max-width: 640px) 50vw, 33vw"
+                                alt={p.id}
+                                loading="lazy"
+                                decoding="async"
                             />
-                        </div>
-                    </a>
+                            <span class="strip__idx">
+                                {String(i + 2).padStart(2, "0")}
+                            </span>
+                        </a>
+                    ))}
 
                     <a
-                        href="/photos"
-                        class="relative aspect-video w-full group overflow-hidden border border-border/50 bg-muted/20 hover:border-primary/50 transition-colors duration-300"
+                        class="strip__item strip__item--more"
+                        href="/gallery"
+                        data-astro-prefetch="false"
+                        style="--reveal-delay: 360ms"
                     >
-                        <CldImage
-                            src="damA2_09_20_25_rkfd0k"
-                            alt="Black and white portrait"
-                            width={768}
-                            height={432}
-                            sizes="(max-width: 768px) 90vw, 30vw"
-                            quality="auto"
-                            format="auto"
-                            class="h-full w-full object-cover opacity-90 transition-transform duration-700 ease-out group-hover:scale-[1.05] group-hover:opacity-100"
-                        />
-                        <div
-                            class="absolute inset-0 bg-black/15 group-hover:bg-black/5 transition-colors duration-500"
-                        >
-                        </div>
-
-                        <div
-                            class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-                        <div
-                            class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary/30 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                        >
-                        </div>
-
-                        <div
-                            class="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end text-white/90 font-mono text-xs md:text-sm mix-blend-difference"
-                        >
-                            <span class="font-medium text-shadow-sm"
-                                >DRONE / INFRASTRUCTURE</span
-                            >
-                            <ArrowRight
-                                size={16}
-                                className="transition-transform group-hover:translate-x-1"
-                            />
-                        </div>
+                        <span>All photos</span>
+                        <span>→</span>
                     </a>
                 </div>
             </section>
-        </main>
+        )
+    }
 
-        <div
-            class="flex flex-col space-y-2 py-4 px-6 w-full min-h-16 bg-muted/20 border-t border-muted text-muted-foreground"
-        >
-            <a
-                href="mailto:contact@brockshaffer.dev"
-                class="hover:text-foreground transition w-fit"
-                >Contact@brockshaffer.dev</a
-            >
-            <a
-                class="hover:text-foreground transition w-fit"
-                href="https://www.linkedin.com/in/brockshaffer">LinkedIn</a
-            >
-            <a
-                class="hover:text-foreground transition w-fit"
-                href="https://github.com/CodedMasonry">Github</a
-            >
-        </div>
-
-        <!--Loading Screen-->
-        <div
-            class="loading-screen fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
-        >
-            <div
-                class="shutter-top absolute top-0 left-0 w-full h-1/2 bg-neutral-950 border-b border-neutral-800 z-10"
-            >
-            </div>
-            <div
-                class="shutter-bottom absolute bottom-0 left-0 w-full h-1/2 bg-neutral-950 border-t border-neutral-800 z-10"
-            >
-            </div>
-
-            <div
-                class="loading-content relative z-20 flex flex-col items-center gap-4 mix-blend-difference"
-            >
-                <div
-                    class="font-mono text-4xl md:text-6xl font-bold tracking-tighter text-white mb-8"
-                >
-                    <span class="counter">000</span>%
+    {
+        drone && (
+            <section class="wrap section" id="drones">
+                <div class="panel drone">
+                    <figure class="drone__img">
+                        <img
+                            src={imageUrl(drone.key, {
+                                width: 1200,
+                                format: "auto",
+                                quality: "medium-high",
+                            })}
+                            alt="Drone photograph"
+                            loading="lazy"
+                            decoding="async"
+                        />
+                    </figure>
+                    <div class="drone__body">
+                        <p class="label">
+                            <span class="idx">02</span> Drones
+                        </p>
+                        <h2>DRONES</h2>
+                        <p>
+                            I fly to capture places from angles you can't walk
+                            to. Most of the time I'm waiting: for rain to stop,
+                            for the light to drop, for a street to empty out.
+                            Then I hold the aircraft still and let the scene do
+                            the rest.
+                        </p>
+                        <ul class="drone__list">
+                            <li>Photos</li>
+                            <li>Video</li>
+                        </ul>
+                        <a class="btn" href="/gallery">
+                            View photos
+                        </a>
+                    </div>
                 </div>
+            </section>
+        )
+    }
+</Base>
 
-                <div
-                    class="flex items-center gap-2 text-xs font-mono text-neutral-400 uppercase tracking-[0.2em]"
-                >
-                    <span
-                        class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                    ></span>
-                    <span>System Initializing</span>
-                </div>
-            </div>
-        </div>
-    </body>
-</html>
+<style>
+    .hero {
+        border-bottom: 1px solid var(--line);
+    }
 
-<script is:inline>
-    document.addEventListener("DOMContentLoaded", () => {
-        const tl = gsap.timeline();
-        const counterObj = { value: 0 };
+    .hero__inner {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding-block: clamp(2.5rem, 6vw, 4rem) clamp(2rem, 5vw, 3rem);
+    }
 
-        tl.to(counterObj, {
-            value: 100,
-            duration: 0.8,
-            ease: "power2.out",
-            onUpdate: () => {
-                document.querySelector(".counter").textContent = Math.round(
-                    counterObj.value,
-                )
-                    .toString()
-                    .padStart(3, "0");
+    .hero__name {
+        margin-top: 1rem;
+        font-size: clamp(3rem, 13vw, 9rem);
+        letter-spacing: -0.02em;
+        line-height: 0.9;
+    }
+
+    .hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.75rem;
+    }
+
+    .hero__spec {
+        margin-top: 2rem;
+        border-top: 1px solid var(--line-strong);
+        max-width: 34rem;
+    }
+
+    .hero__spec-row {
+        display: grid;
+        grid-template-columns: 7rem 1fr;
+        gap: 1rem;
+        padding-block: 0.5rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+    }
+
+    .hero__spec-row dt {
+        color: var(--text-faint);
+    }
+
+    .hero__spec-row dd {
+        color: var(--text);
+        text-transform: uppercase;
+    }
+
+    .hero__fig {
+        margin: 0;
+    }
+
+    .hero__frame {
+        position: relative;
+        border: 1px solid var(--line-strong);
+        background: var(--bg-deep);
+        padding: 0.5rem;
+    }
+
+    .hero__frame::before,
+    .hero__frame::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        z-index: 1;
+    }
+
+    .hero__frame::before {
+        top: -1px;
+        left: -1px;
+        border-top: 2px solid var(--yellow);
+        border-left: 2px solid var(--yellow);
+    }
+
+    .hero__frame::after {
+        bottom: -1px;
+        right: -1px;
+        border-bottom: 2px solid var(--yellow);
+        border-right: 2px solid var(--yellow);
+    }
+
+    .hero__frame img {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+    }
+
+    .hero__cap {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.18em;
+        color: var(--text-faint);
+        text-transform: uppercase;
+    }
+
+    .section__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .strip {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .strip__item {
+        position: relative;
+        overflow: hidden;
+        background: var(--bg-deep);
+        border: 1px solid var(--line-strong);
+        aspect-ratio: 4 / 3;
+        transition:
+            opacity 0.5s ease var(--reveal-delay, 0ms),
+            transform 0.5s ease var(--reveal-delay, 0ms),
+            background-color 0.15s ease,
+            color 0.15s ease;
+    }
+
+    .strip__item--banner {
+        grid-column: 1 / -1;
+        aspect-ratio: 16 / 8;
+    }
+
+    .strip__item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.25s ease;
+    }
+
+    .strip__item:hover img {
+        transform: scale(1.03);
+    }
+
+    .strip__idx {
+        position: absolute;
+        bottom: 0.4rem;
+        left: 0.4rem;
+        padding: 0.2rem 0.4rem;
+        background: var(--bg-deep);
+        border: 1px solid var(--line);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        color: var(--yellow);
+    }
+
+    .strip__item--more {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        aspect-ratio: auto;
+    }
+
+    .strip__item--more:hover {
+        color: var(--hi);
+        background: var(--panel-2);
+    }
+
+    .drone {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .drone__img img {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border: 1px solid var(--line);
+    }
+
+    .drone__body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .drone__body h2 {
+        font-size: clamp(1.6rem, 4vw, 2.6rem);
+    }
+
+    .drone__list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        color: var(--text-dim);
+    }
+
+    .drone__list li::before {
+        content: "▸ ";
+        color: var(--yellow);
+    }
+
+    .drone__body .btn {
+        align-self: flex-start;
+        margin-top: auto;
+    }
+
+    /* reveal on scroll, only when JS is available */
+    :global(.js) .strip__item {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    :global(.js) .strip__item.in {
+        opacity: 1;
+        transform: none;
+    }
+
+    @media (min-width: 640px) {
+        .strip {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 900px) {
+        .hero__inner {
+            grid-template-columns: 1.1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .hero__name {
+            font-size: clamp(3.5rem, 6.5vw, 6.25rem);
+        }
+
+        .hero__frame img {
+            aspect-ratio: 4 / 5;
+        }
+
+        .drone {
+            grid-template-columns: 1fr 1fr;
+            align-items: stretch;
+        }
+
+        .drone__img img {
+            height: 100%;
+            aspect-ratio: auto;
+        }
+    }
+</style>
+
+<script>
+    const items = document.querySelectorAll(".strip__item");
+    if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((e) => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add("in");
+                        io.unobserve(e.target);
+                    }
+                });
             },
-        });
-
-        tl.to(
-            ".loading-content",
-            {
-                opacity: 0,
-                duration: 0.3,
-                ease: "power2.in",
-            },
-            "-=0.2",
+            { threshold: 0.1 },
         );
-        tl.to(
-            ".shutter-top",
-            {
-                yPercent: -100,
-                duration: 0.8,
-                ease: "power4.inOut",
-            },
-            "open",
-        );
-
-        tl.to(
-            ".shutter-bottom",
-            {
-                yPercent: 100,
-                duration: 0.8,
-                ease: "power4.inOut",
-            },
-            "open",
-        );
-        tl.set(".loading-screen", {
-            display: "none",
-        });
-        tl.fromTo(
-            "h1, .animate-in",
-            { y: 20, opacity: 0 },
-            { y: 0, opacity: 1, duration: 0.8 },
-            "-=0.4",
-        );
-    });
+        items.forEach((el) => io.observe(el));
+    } else {
+        items.forEach((el) => el.classList.add("in"));
+    }
 </script>

@@ -1,88 +1,202 @@
 ---
-import { NavBarMenu, type NavItem } from "./navbar-component";
+import { nav, site } from "@/data/site";
 
-// Personal section on Public page
-const PersonalSection: NavItem[] = [
-    {
-        title: "Photography",
-        href: "/photos",
-        star: false,
-        description: "I love photography, so you can see the gallery here.",
-    },
-    {
-        title: "Projects",
-        href: "https://github.com/CodedMasonry",
-        star: false,
-        description: "Nothing here yet, so this just goes to my Github.",
-    },
-    {
-        title: "Blog",
-        href: "/",
-        star: false,
-        description: "Nothing here yet, this will end up being a blog soon.",
-    },
-];
-
-// Professional section on Public page
-const ProfessionalSection: NavItem[] = [
-    {
-        title: "Resume",
-        href: "/resume",
-        star: true,
-        description:
-            "My current resume where you can get an overview of my skills.",
-    },
-    {
-        title: "References",
-        href: "/references",
-        star: true,
-        description:
-            "An up to date list of references who can attest to my abilities.",
-    },
-    {
-        title: "Young Professionals Academy",
-        href: "/experiences/ypa",
-        star: false,
-        description:
-            "An overview of the highschool mentorships I participated in",
-    },
-    {
-        title: "Software Engineering Internship",
-        href: "/experiences/outcomes",
-        star: false,
-        description: "An internship I had with a tech company.",
-    },
-    {
-        title: "IT Department Internship",
-        href: "/experiences/fstlogistics",
-        star: false,
-        description: "An internship I had with an IT Department.",
-    },
-    {
-        title: "Team Bad Robots",
-        href: "https://www.dublinroboticsboosters.org/",
-        star: false,
-        description: "The FRC team I'm currently a part of in high school.",
-    },
-];
-
-const getCloudinaryUrl = (publicId: string, width: number = 600) => {
-    const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
-    return `https://res.cloudinary.com/${cloudName}/image/upload/w_${width},f_auto,q_auto,c_fill,g_auto/${publicId}`;
-};
-
-//the hero image
-const HeroSrc = getCloudinaryUrl("DJI_20240801201214_0045_D_vtzl3w");
+const pathname = Astro.url.pathname;
+const current = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 ---
 
-<div class="absolute flex w-full items-center p-4 z-20">
-    <div class="ml-4">
-        <NavBarMenu
-            personal={PersonalSection}
-            professional={ProfessionalSection}
-            heroImageSrc={HeroSrc}
-            client:load
-        />
+<header class="site-nav">
+    <div class="wrap site-nav__bar">
+        <a href="/" class="site-nav__word">
+            <span class="site-nav__name">BROCK&nbsp;SHAFFER</span>
+            <span class="site-nav__sub">ECE&nbsp;//&nbsp;OSU</span>
+        </a>
+
+        <nav class="site-nav__links" aria-label="Primary">
+            {
+                nav.map((item) => (
+                    <a
+                        href={item.href}
+                        class:list={[
+                            "site-nav__link",
+                            { "is-active": current(item.href) },
+                        ]}
+                        aria-current={current(item.href) ? "page" : undefined}
+                    >
+                        <span class="site-nav__idx">{item.index}</span>
+                        {item.label}
+                    </a>
+                ))
+            }
+        </nav>
+
+        <button
+            class="site-nav__toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            data-nav-toggle
+        >
+            <span>MENU</span>
+        </button>
     </div>
-    <div class="mr-2 ml-auto flex"></div>
-</div>
+
+    <div class="site-nav__mobile" id="mobile-nav" data-nav-menu hidden>
+        {
+            nav.map((item) => (
+                <a
+                    href={item.href}
+                    class:list={[
+                        "site-nav__mlink",
+                        { "is-active": current(item.href) },
+                    ]}
+                >
+                    <span class="site-nav__idx">{item.index}</span>
+                    {item.label}
+                </a>
+            ))
+        }
+        <div class="site-nav__mfoot">
+            <span>{site.email}</span>
+        </div>
+    </div>
+</header>
+
+<style>
+    .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(6px);
+    }
+
+    .site-nav__bar {
+        display: flex;
+        align-items: stretch;
+        min-height: 3.25rem;
+    }
+
+    .site-nav__word {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.15rem;
+        padding-block: 0.4rem;
+        flex: 1;
+    }
+
+    .site-nav__name {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+        color: var(--text);
+    }
+
+    .site-nav__sub {
+        font-size: 0.6rem;
+        letter-spacing: 0.28em;
+        color: var(--text-faint);
+    }
+
+    .site-nav__links {
+        display: none;
+    }
+
+    .site-nav__link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-inline: 1rem;
+        border-left: 1px solid var(--line);
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+    }
+
+    .site-nav__link:hover {
+        color: var(--hi);
+        background: var(--panel-2);
+    }
+
+    .site-nav__link.is-active {
+        color: var(--hi);
+        background: var(--panel);
+        box-shadow: inset 0 2px 0 var(--red);
+    }
+
+    .site-nav__idx {
+        font-size: 0.6rem;
+        color: var(--red);
+    }
+
+    .site-nav__toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-inline: 1rem;
+        border-left: 1px solid var(--line);
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        color: var(--text-dim);
+    }
+
+    .site-nav__toggle:hover {
+        color: var(--hi);
+    }
+
+    .site-nav__mobile {
+        border-top: 1px solid var(--line);
+        background: var(--bg-deep);
+    }
+
+    .site-nav__mlink {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.9rem var(--pad);
+        border-bottom: 1px solid var(--line);
+        font-size: 0.8rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+    }
+
+    .site-nav__mlink.is-active {
+        color: var(--hi);
+        background: var(--panel);
+    }
+
+    .site-nav__mfoot {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.7rem var(--pad);
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        color: var(--text-faint);
+    }
+
+    @media (min-width: 768px) {
+        .site-nav__links {
+            display: flex;
+        }
+
+        .site-nav__toggle,
+        .site-nav__mobile {
+            display: none;
+        }
+    }
+</style>
+
+<script>
+    const toggle = document.querySelector("[data-nav-toggle]");
+    const menu = document.querySelector("[data-nav-menu]");
+
+    toggle?.addEventListener("click", () => {
+        const open = menu?.hasAttribute("hidden");
+        if (open) menu?.removeAttribute("hidden");
+        else menu?.setAttribute("hidden", "");
+        toggle?.setAttribute("aria-expanded", String(open));
+    });
+</script>

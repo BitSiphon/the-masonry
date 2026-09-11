@@ -1,0 +1,82 @@
+---
+import { site } from "@/data/site";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+    <div class="wrap footer__grid">
+        <div class="footer__col">
+            <p class="footer__label">CONTACT</p>
+            <a href={`mailto:${site.email}`}>{site.email}</a>
+            <a href={`tel:${site.phone.replace(/[^0-9]/g, "")}`}>
+                {site.phone}
+            </a>
+            <span>{site.location}</span>
+        </div>
+        <div class="footer__col">
+            <p class="footer__label">LINKS</p>
+            <a href={site.github} rel="noopener noreferrer" target="_blank">
+                GitHub
+            </a>
+            <a href={site.linkedin} rel="noopener noreferrer" target="_blank">
+                LinkedIn
+            </a>
+        </div>
+        <div class="footer__col footer__col--right">
+            <p class="footer__label">INFO</p>
+            <span>{site.role}</span>
+            <span>{site.org}</span>
+            <span>© {year} {site.name}</span>
+        </div>
+    </div>
+</footer>
+
+<style>
+    .footer {
+        border-top: 1px solid var(--line);
+        background: var(--bg-deep);
+        margin-top: 2rem;
+    }
+
+    .footer__grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding-block: 2.5rem;
+    }
+
+    .footer__col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+    }
+
+    .footer__col a {
+        color: var(--text);
+    }
+
+    .footer__col a:hover {
+        color: var(--yellow);
+    }
+
+    .footer__label {
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        color: var(--text-faint);
+        margin-bottom: 0.4rem;
+    }
+
+    @media (min-width: 768px) {
+        .footer__grid {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .footer__col--right {
+            text-align: right;
+            align-items: flex-end;
+        }
+    }
+</style>

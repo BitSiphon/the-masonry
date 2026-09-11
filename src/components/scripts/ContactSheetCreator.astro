@@ -1,0 +1,261 @@
+---
+import "@/styles/tools.css";
+
+const MAX_IMAGES = 12;
+const COLUMNS = 4;
+const ROWS = 3;
+---
+
+<div class="tool" data-tool="contactsheet">
+    <div class="tool-intro">
+        <svg
+            class="tool-intro__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            ></path>
+        </svg>
+        <p class="tool-intro__text">
+            Select up to {MAX_IMAGES} images to create a contact sheet
+        </p>
+        <button class="btn btn--primary" data-select type="button">
+            Select images <span data-select-count></span>
+        </button>
+        <input
+            class="tool-visually-hidden"
+            data-file-input
+            type="file"
+            multiple
+            accept="image/*"
+        />
+    </div>
+
+    <div class="panel is-hidden" data-selected>
+        <div class="panel--head">
+            <span>Selected images</span>
+            <span class="tool-count" data-count>0 / {MAX_IMAGES}</span>
+        </div>
+        <div class="tool-panel__body">
+            <div class="tool-grid" data-grid></div>
+            <div class="tool-actions">
+                <button class="btn btn--primary" data-generate type="button">
+                    Generate contact sheet
+                </button>
+                <button class="btn btn--ghost" data-clear type="button">Clear all</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas data-canvas hidden></canvas>
+
+    <template data-thumb-template>
+        <div class="tool-thumb">
+            <img data-thumb-image alt="" />
+            <button class="tool-thumb__remove" data-thumb-remove type="button" aria-label="Remove image">
+                ✕
+            </button>
+        </div>
+    </template>
+</div>
+
+<script>
+    interface SheetImage {
+        id: string;
+        file: File;
+        preview: string;
+        width: number;
+        height: number;
+    }
+
+    const MAX_IMAGES = 12;
+    const COLUMNS = 4;
+    const ROWS = 3;
+
+    const root = document.querySelector<HTMLElement>('[data-tool="contactsheet"]');
+
+    if (root) {
+        const selectBtn = root.querySelector<HTMLButtonElement>("[data-select]")!;
+        const selectCount = root.querySelector<HTMLElement>("[data-select-count]")!;
+        const fileInput = root.querySelector<HTMLInputElement>("[data-file-input]")!;
+        const selectedPanel = root.querySelector<HTMLElement>("[data-selected]")!;
+        const count = root.querySelector<HTMLElement>("[data-count]")!;
+        const grid = root.querySelector<HTMLElement>("[data-grid]")!;
+        const generateBtn = root.querySelector<HTMLButtonElement>("[data-generate]")!;
+        const clearBtn = root.querySelector<HTMLButtonElement>("[data-clear]")!;
+        const canvas = root.querySelector<HTMLCanvasElement>("[data-canvas]")!;
+        const template = root.querySelector<HTMLTemplateElement>("[data-thumb-template]")!;
+
+        const images: SheetImage[] = [];
+        let isGenerating = false;
+
+        const updateUI = () => {
+            const full = images.length >= MAX_IMAGES;
+            selectedPanel.classList.toggle("is-hidden", images.length === 0);
+            count.textContent = `${images.length} / ${MAX_IMAGES}`;
+            selectBtn.disabled = full;
+            selectCount.textContent = images.length > 0 ? `(${images.length}/${MAX_IMAGES})` : "";
+            generateBtn.disabled = isGenerating || images.length === 0;
+            generateBtn.textContent = isGenerating ? "Generating…" : "Generate contact sheet";
+        };
+
+        const addImage = (image: SheetImage) => {
+            images.push(image);
+            const fragment = template.content.cloneNode(true) as DocumentFragment;
+            const refs = {
+                image: fragment.querySelector<HTMLImageElement>("[data-thumb-image]")!,
+                remove: fragment.querySelector<HTMLButtonElement>("[data-thumb-remove]")!,
+                thumb: fragment.querySelector<HTMLElement>(".tool-thumb")!,
+            };
+            refs.image.src = image.preview;
+            refs.image.alt = image.file.name;
+            refs.remove.addEventListener("click", () => removeImage(image.id));
+            grid.append(fragment);
+        };
+
+        const handleFileSelect = async () => {
+            const files = Array.from(fileInput.files ?? []);
+            if (images.length + files.length > MAX_IMAGES) {
+                alert(`Maximum ${MAX_IMAGES} images allowed`);
+                return;
+            }
+
+            for (const file of files) {
+                if (!file.type.startsWith("image/")) continue;
+                const preview = URL.createObjectURL(file);
+                const element = new window.Image();
+                await new Promise((resolve) => {
+                    element.onload = resolve;
+                    element.onerror = resolve;
+                    element.src = preview;
+                });
+                addImage({
+                    id: Math.random().toString(36).slice(2),
+                    file,
+                    preview,
+                    width: element.width,
+                    height: element.height,
+                });
+            }
+
+            fileInput.value = "";
+            updateUI();
+        };
+
+        const removeImage = (id: string) => {
+            const index = images.findIndex((image) => image.id === id);
+            if (index === -1) return;
+            const [image] = images.splice(index, 1);
+            if (image.preview) URL.revokeObjectURL(image.preview);
+            grid.children[index]?.remove();
+            updateUI();
+        };
+
+        const clearAll = () => {
+            for (const image of images) {
+                if (image.preview) URL.revokeObjectURL(image.preview);
+            }
+            images.length = 0;
+            grid.replaceChildren();
+            updateUI();
+        };
+
+        const generateContactSheet = async () => {
+            if (images.length === 0) {
+                alert("Please select at least one image");
+                return;
+            }
+            isGenerating = true;
+            updateUI();
+
+            try {
+                const imageWidth = 300;
+                const imageHeight = 300;
+                const padding = 10;
+                const margin = 20;
+                const canvasWidth = COLUMNS * (imageWidth + padding) + margin * 2 - padding;
+                const canvasHeight = ROWS * (imageHeight + padding) + margin * 2 - padding;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+
+                const context = canvas.getContext("2d");
+                if (!context) return;
+
+                context.fillStyle = "#ffffff";
+                context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                let index = 0;
+                for (let row = 0; row < ROWS && index < images.length; row++) {
+                    for (let column = 0; column < COLUMNS && index < images.length; column++) {
+                        const imageData = images[index];
+                        const x = margin + column * (imageWidth + padding);
+                        const y = margin + row * (imageHeight + padding);
+                        const element = new window.Image();
+                        element.crossOrigin = "anonymous";
+                        await new Promise((resolve) => {
+                            element.onload = () => {
+                                context.strokeStyle = "#e5e7eb";
+                                context.lineWidth = 1;
+                                context.strokeRect(x, y, imageWidth, imageHeight);
+                                const scale = Math.min(
+                                    imageWidth / imageData.width,
+                                    imageHeight / imageData.height,
+                                );
+                                const scaledWidth = imageData.width * scale;
+                                const scaledHeight = imageData.height * scale;
+                                context.drawImage(
+                                    element,
+                                    x + (imageWidth - scaledWidth) / 2,
+                                    y + (imageHeight - scaledHeight) / 2,
+                                    scaledWidth,
+                                    scaledHeight,
+                                );
+                                resolve(null);
+                            };
+                            element.onerror = resolve;
+                            element.src = imageData.preview;
+                        });
+                        index++;
+                    }
+                }
+
+                await new Promise<void>((resolve) => {
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement("a");
+                                link.href = url;
+                                link.download = `contact-sheet-${Date.now()}.jpg`;
+                                link.click();
+                                URL.revokeObjectURL(url);
+                            }
+                            resolve();
+                        },
+                        "image/jpeg",
+                        0.95,
+                    );
+                });
+            } catch (error) {
+                console.error("Error generating contact sheet:", error);
+                alert("Error generating contact sheet");
+            } finally {
+                isGenerating = false;
+                updateUI();
+            }
+        };
+
+        selectBtn.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", handleFileSelect);
+        generateBtn.addEventListener("click", generateContactSheet);
+        clearBtn.addEventListener("click", clearAll);
+
+        updateUI();
+    }
+</script>

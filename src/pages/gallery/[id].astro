@@ -1,0 +1,268 @@
+---
+import { env } from "cloudflare:workers";
+import Base from "@/layouts/Base.astro";
+import { type GalleryBucket, getPhotos, isLocalHost } from "@/lib/gallery";
+import { imageUrl, originalUrl, srcset } from "@/lib/images";
+
+const { id } = Astro.params;
+const bucket = env.GALLERY as GalleryBucket;
+const photos = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname) });
+const photo = photos.find((p) => p.id === id);
+
+if (!photo) return Astro.redirect("/404");
+
+const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const formatUploaded = (raw: string | null) => {
+    if (!raw) return "n/a";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "n/a";
+    return d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+};
+---
+
+<Base title={photo.id} description={`Photo ${photo.id}.`}>
+    <div
+        class="wrap record"
+        id="photo-record"
+        data-original-url={originalUrl(photo.key)}
+    >
+        <div class="record__head">
+            <a href="/gallery" class="btn btn--ghost">← Gallery</a>
+            <a class="btn" href={originalUrl(photo.key)} target="_blank" rel="noopener">
+                Original
+            </a>
+        </div>
+
+        <div class="record__grid">
+            <figure class="record__fig">
+                <div class="record__frame">
+                    <img
+                        src={imageUrl(photo.key, {
+                            width: 1800,
+                            format: "auto",
+                            quality: "medium-high",
+                        })}
+                        srcset={srcset(photo.key, [800, 1280, 1800, 2400], {
+                            format: "auto",
+                            quality: "medium-high",
+                        })}
+                        sizes="(max-width: 1024px) 100vw, 66vw"
+                        alt={photo.id}
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
+                    />
+                </div>
+                <figcaption class="record__cap">
+                    <span>{photo.id}</span>
+                    <span>{photo.format.toUpperCase()}</span>
+                </figcaption>
+            </figure>
+
+            <aside class="panel record__spec">
+                <div class="panel--head">
+                    <span>Photo data</span>
+                    <span class="red">{photo.id}</span>
+                </div>
+                <dl class="record__list">
+                    <div class="record__row">
+                        <dt>ID</dt>
+                        <dd>{photo.id}</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>FORMAT</dt>
+                        <dd>{photo.format.toUpperCase()}</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>SIZE</dt>
+                        <dd>{formatBytes(photo.size)}</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>UPLOADED</dt>
+                        <dd>{formatUploaded(photo.uploaded)}</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>CAMERA</dt>
+                        <dd data-exif="camera">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>FOCAL LENGTH</dt>
+                        <dd data-exif="focalLength">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>APERTURE</dt>
+                        <dd data-exif="aperture">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>EXPOSURE</dt>
+                        <dd data-exif="exposure">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>ISO</dt>
+                        <dd data-exif="iso">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>LATITUDE</dt>
+                        <dd data-exif="latitude">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>LONGITUDE</dt>
+                        <dd data-exif="longitude">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>DATE</dt>
+                        <dd data-exif="date">…</dd>
+                    </div>
+                    <div class="record__row">
+                        <dt>DIMENSIONS</dt>
+                        <dd data-exif="dimensions">…</dd>
+                    </div>
+                </dl>
+            </aside>
+        </div>
+    </div>
+</Base>
+
+<style>
+    .record__head {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-block: 1.5rem;
+    }
+
+    .record__grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding-bottom: 3rem;
+    }
+
+    .record__frame {
+        position: relative;
+        border: 1px solid var(--line-strong);
+        background: var(--bg-deep);
+        padding: 0.5rem;
+    }
+
+    .record__frame img {
+        width: 100%;
+        object-fit: contain;
+        background: #000;
+        max-height: 80vh;
+    }
+
+    .record__cap {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+
+    .record__list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .record__row {
+        display: grid;
+        grid-template-columns: 9rem 1fr;
+        gap: 1rem;
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.74rem;
+    }
+
+    .record__row dt {
+        color: var(--text-faint);
+        letter-spacing: 0.14em;
+    }
+
+    .record__row dd {
+        color: var(--text);
+        word-break: break-word;
+    }
+
+    @media (min-width: 900px) {
+        .record__grid {
+            grid-template-columns: 1fr 22rem;
+            align-items: start;
+        }
+    }
+</style>
+
+<script>
+    import exifr from "exifr";
+
+    const root = document.getElementById("photo-record");
+    const url = root?.dataset.originalUrl;
+
+    const set = (key, value) => {
+        const el = document.querySelector(`[data-exif="${key}"]`);
+        if (el) el.textContent = value || "n/a";
+    };
+
+    const formatExposure = (seconds) => {
+        if (seconds == null) return null;
+        if (seconds < 1) return `1/${Math.round(1 / seconds)} s`;
+        return `${seconds} s`;
+    };
+
+    const formatCoordinate = (value, positive, negative) => {
+        if (value == null) return null;
+        const direction = value >= 0 ? positive : negative;
+        return `${Math.abs(value).toFixed(4)}° ${direction}`;
+    };
+
+    const formatDate = (value) => {
+        if (!value) return null;
+        const d = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    };
+
+    const fill = (exif) => {
+        const camera = [exif?.Make, exif?.Model].filter(Boolean).join(" ");
+        set("camera", camera);
+        set("focalLength", exif?.FocalLength ? `${exif.FocalLength} mm` : null);
+        set("aperture", exif?.FNumber ? `f/${exif.FNumber}` : null);
+        set("exposure", formatExposure(exif?.ExposureTime));
+        set("iso", exif?.ISO != null ? String(exif.ISO) : null);
+        set("latitude", formatCoordinate(exif?.latitude, "N", "S"));
+        set("longitude", formatCoordinate(exif?.longitude, "E", "W"));
+        set("date", formatDate(exif?.CreateDate ?? exif?.DateTimeOriginal));
+        const width = exif?.imageWidth ?? exif?.ExifImageWidth;
+        const height = exif?.imageHeight ?? exif?.ExifImageHeight;
+        set("dimensions", width && height ? `${width} × ${height}` : null);
+    };
+
+    if (url) {
+        exifr
+            .parse(url)
+            .then(fill)
+            .catch(() => {
+                document
+                    .querySelectorAll("[data-exif]")
+                    .forEach((el) => {
+                        el.textContent = "n/a";
+                    });
+            });
+    }
+</script>

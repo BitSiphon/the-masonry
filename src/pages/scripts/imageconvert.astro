@@ -1,23 +1,23 @@
 ---
-export const prerender = true;
-
-import { ImageFormatConverter } from "@/components/scripts/image-format-converter";
-import Main from "@/layouts/main.astro";
+import PageHeader from "@/components/PageHeader.astro";
+import ImageFormatConverter from "@/components/scripts/ImageFormatConverter.astro";
+import Base from "@/layouts/Base.astro";
 ---
 
-<Main title="Image Format Converter">
-    <main class="min-h-screen bg-background text-foreground">
-        <div class="container mx-auto px-4 py-12 max-w-4xl">
-            <div class="mb-12 text-center">
-                <h1 class="text-4xl md:text-5xl font-bold mb-4 text-balance">
-                    Image Format Converter
-                </h1>
-                <p class="text-lg text-muted-foreground text-balance">
-                    Convert your images to PNG, JPEG, or WebP format (including
-                    HEIC/HEIF)
-                </p>
-            </div>
-            <ImageFormatConverter client:load />
-        </div>
-    </main>
-</Main>
+<Base
+    title="Image Format Converter"
+    description="Convert your images to PNG, JPEG, or WebP format, including HEIC and HEIF."
+>
+    <div class="wrap">
+        <PageHeader
+            index="06"
+            kicker="Tools"
+            title="Image Converter"
+            meta="PNG / JPEG / WebP / HEIC"
+        />
+    </div>
+
+    <div class="wrap section">
+        <ImageFormatConverter />
+    </div>
+</Base>

@@ -1,24 +1,19 @@
 // @ts-check
-
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "astro/config";
-
-import react from "@astrojs/react";
 import cloudflare from "@astrojs/cloudflare";
+import { defineConfig } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
-  output: "server",
-  vite: {
-    plugins: [tailwindcss()],
-  },
-  prefetch: {
-    prefetchAll: true,
-    defaultStrategy: "tap",
-  },
+    site: "https://brockshaffer.dev",
+    output: "server",
+    session: false,
 
-  integrations: [react()],
-  adapter: cloudflare({
-    imageService: "cloudflare",
-  }),
+    adapter: cloudflare({
+        imageService: "passthrough",
+    }),
+
+    prefetch: {
+        prefetchAll: true,
+        defaultStrategy: "tap",
+    },
 });

@@ -1,0 +1,464 @@
+---
+import "@/styles/tools.css";
+
+const formats = ["png", "jpeg", "webp"];
+---
+
+<div class="tool" data-tool="converter">
+    <div class="tool-drop" data-drop>
+        <svg
+            class="tool-drop__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            aria-hidden="true"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            ></path>
+        </svg>
+        <p class="tool-drop__title" data-drop-title>
+            Drag &amp; drop images, or click to browse
+        </p>
+        <p class="tool-drop__hint">
+            PNG · JPEG · WebP · HEIC/HEIF · Multiple files supported
+        </p>
+        <input
+            class="tool-visually-hidden"
+            data-file-input
+            type="file"
+            accept="image/*,.heic,.heif"
+            multiple
+        />
+    </div>
+
+    <div class="panel is-hidden" data-settings>
+        <div class="panel--head">
+            <span>Output settings</span>
+            <span class="tool-count" data-count>0 images queued</span>
+        </div>
+        <div class="tool-panel__body">
+            <div class="tool-formats" data-formats>
+                {
+                    formats.map((format, index) => (
+                        <button
+                            class:list={["tool-format", { "is-active": index === 0 }]}
+                            data-format={format}
+                            type="button"
+                        >
+                            {format}
+                        </button>
+                    ))
+                }
+            </div>
+
+            <div class="tool-quality is-hidden" data-quality-box>
+                <div class="tool-quality__head">
+                    <span>Quality</span>
+                    <span data-quality-value>95%</span>
+                </div>
+                <input
+                    data-quality
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value="0.95"
+                />
+            </div>
+
+            <div class="tool-actions">
+                <button class="btn btn--primary" data-convert-all type="button">
+                    ↓ Convert all
+                </button>
+                <button class="btn btn--ghost" data-clear-all type="button">
+                    Clear all
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tool-grid is-hidden" data-grid></div>
+    <p class="tool-summary is-hidden" data-summary></p>
+
+    <canvas data-canvas hidden></canvas>
+
+    <template data-card-template>
+        <div class="tool-card" data-status="idle">
+            <div class="tool-card__thumb">
+                <img class="tool-card__img" data-card-img alt="" />
+                <div class="tool-card__overlay" data-card-overlay></div>
+                <button
+                    class="tool-card__remove"
+                    data-card-remove
+                    type="button"
+                    aria-label="Remove image"
+                >
+                    ✕
+                </button>
+                <span class="tool-card__badge is-hidden" data-card-badge>HEIC</span>
+            </div>
+            <div class="tool-card__body">
+                <p class="tool-card__name" data-card-name></p>
+                <button class="tool-card__convert" data-card-convert type="button"></button>
+            </div>
+        </div>
+    </template>
+</div>
+
+<script>
+    type ImageFormat = "png" | "jpeg" | "webp";
+    type Status = "idle" | "loading" | "converting" | "done" | "error";
+
+    interface ConversionImage {
+        id: string;
+        file: File;
+        preview: string;
+        isHeic: boolean;
+        status: Status;
+    }
+
+    interface CardRefs {
+        card: HTMLElement;
+        image: HTMLImageElement;
+        overlay: HTMLElement;
+        remove: HTMLButtonElement;
+        convert: HTMLButtonElement;
+    }
+
+    const root = document.querySelector<HTMLElement>('[data-tool="converter"]');
+
+    if (root) {
+        const drop = root.querySelector<HTMLElement>("[data-drop]")!;
+        const dropTitle = root.querySelector<HTMLElement>("[data-drop-title]")!;
+        const fileInput = root.querySelector<HTMLInputElement>("[data-file-input]")!;
+        const settings = root.querySelector<HTMLElement>("[data-settings]")!;
+        const count = root.querySelector<HTMLElement>("[data-count]")!;
+        const formats = root.querySelector<HTMLElement>("[data-formats]")!;
+        const qualityBox = root.querySelector<HTMLElement>("[data-quality-box]")!;
+        const qualityInput = root.querySelector<HTMLInputElement>("[data-quality]")!;
+        const qualityValue = root.querySelector<HTMLElement>("[data-quality-value]")!;
+        const convertAllBtn = root.querySelector<HTMLButtonElement>("[data-convert-all]")!;
+        const clearAllBtn = root.querySelector<HTMLButtonElement>("[data-clear-all]")!;
+        const grid = root.querySelector<HTMLElement>("[data-grid]")!;
+        const summary = root.querySelector<HTMLElement>("[data-summary]")!;
+        const canvas = root.querySelector<HTMLCanvasElement>("[data-canvas]")!;
+        const template = root.querySelector<HTMLTemplateElement>("[data-card-template]")!;
+
+        const images: ConversionImage[] = [];
+        const cards = new Map<string, CardRefs>();
+
+        let selectedFormat: ImageFormat = "png";
+        let quality = 0.95;
+        let isBulkConverting = false;
+        let isDragOver = false;
+
+        const isHeicFile = (file: File) =>
+            file.type === "image/heic" ||
+            file.type === "image/heif" ||
+            file.name.toLowerCase().endsWith(".heic") ||
+            file.name.toLowerCase().endsWith(".heif");
+
+        const buttonLabel = (status: Status) => {
+            if (status === "loading" || status === "converting") return "…";
+            if (status === "done") return "↓ Again";
+            if (status === "error") return "Retry";
+            return `→ ${selectedFormat.toUpperCase()}`;
+        };
+
+        const updateCard = (image: ConversionImage) => {
+            const refs = cards.get(image.id);
+            if (!refs) return;
+            refs.card.dataset.status = image.status;
+            refs.convert.disabled =
+                image.status === "converting" || image.status === "loading" || isBulkConverting;
+            refs.remove.disabled = isBulkConverting;
+            refs.convert.textContent = buttonLabel(image.status);
+            refs.overlay.replaceChildren();
+            if (image.status === "loading" || image.status === "converting") {
+                const spinner = document.createElement("div");
+                spinner.className = "tool-spinner";
+                refs.overlay.append(spinner);
+                if (image.status === "loading") {
+                    const label = document.createElement("span");
+                    label.textContent = "Converting";
+                    refs.overlay.append(label);
+                }
+            } else if (image.status === "done") {
+                refs.overlay.textContent = "✓";
+            } else if (image.status === "error") {
+                refs.overlay.textContent = "!";
+            }
+        };
+
+        const updateUI = () => {
+            const ready = images.filter((image) => image.status !== "loading");
+            const done = images.filter((image) => image.status === "done").length;
+            const loading = images.some((image) => image.status === "loading");
+            const allDone = ready.length > 0 && done === ready.length;
+
+            settings.classList.toggle("is-hidden", images.length === 0);
+            grid.classList.toggle("is-hidden", images.length === 0);
+            qualityBox.classList.toggle("is-hidden", selectedFormat === "png");
+            count.textContent = `${images.length} image${images.length === 1 ? "" : "s"} queued`;
+
+            convertAllBtn.disabled = isBulkConverting || loading;
+            if (isBulkConverting) {
+                convertAllBtn.textContent = `Converting… (${done}/${ready.length})`;
+            } else if (loading) {
+                convertAllBtn.textContent = "Waiting for HEIC…";
+            } else if (allDone) {
+                convertAllBtn.textContent = "↺ Convert again";
+            } else {
+                convertAllBtn.textContent = `↓ Convert all${images.length > 1 ? ` (${images.length})` : ""}`;
+            }
+
+            summary.classList.toggle("is-hidden", !(images.length > 0 && done > 0));
+            summary.textContent = `${done} of ${ready.length} converted`;
+
+            images.forEach(updateCard);
+        };
+
+        const addImages = (entries: ConversionImage[]) => {
+            for (const image of entries) {
+                images.push(image);
+                const fragment = template.content.cloneNode(true) as DocumentFragment;
+                const card = fragment.querySelector<HTMLElement>(".tool-card")!;
+                const refs: CardRefs = {
+                    card,
+                    image: fragment.querySelector<HTMLImageElement>("[data-card-img]")!,
+                    overlay: fragment.querySelector<HTMLElement>("[data-card-overlay]")!,
+                    remove: fragment.querySelector<HTMLButtonElement>("[data-card-remove]")!,
+                    convert: fragment.querySelector<HTMLButtonElement>("[data-card-convert]")!,
+                };
+                refs.image.src = image.preview;
+                refs.image.alt = image.file.name;
+                fragment.querySelector<HTMLElement>("[data-card-name]")!.textContent = image.file.name;
+                const badge = fragment.querySelector<HTMLElement>("[data-card-badge]")!;
+                badge.classList.toggle("is-hidden", !image.isHeic);
+                refs.remove.addEventListener("click", () => removeImage(image.id));
+                refs.convert.addEventListener("click", () => convertOne(image.id));
+                cards.set(image.id, refs);
+                grid.append(fragment);
+            }
+            updateUI();
+        };
+
+        const processFiles = async (files: FileList | File[]) => {
+            const imageFiles = Array.from(files).filter(
+                (file) =>
+                    file.type.startsWith("image/") ||
+                    file.name.toLowerCase().endsWith(".heic") ||
+                    file.name.toLowerCase().endsWith(".heif"),
+            );
+            if (imageFiles.length === 0) {
+                alert("Please select valid image files");
+                return;
+            }
+
+            const heicFiles = imageFiles.filter(isHeicFile);
+            const otherFiles = imageFiles.filter((file) => !isHeicFile(file));
+
+            addImages(
+                otherFiles.map((file) => ({
+                    id: Math.random().toString(36).slice(2),
+                    file,
+                    preview: URL.createObjectURL(file),
+                    isHeic: false,
+                    status: "idle" as Status,
+                })),
+            );
+
+            const placeholders = heicFiles.map((file) => ({
+                id: Math.random().toString(36).slice(2),
+                file,
+                preview: "",
+                isHeic: true,
+                status: "loading" as Status,
+            }));
+            addImages(placeholders);
+
+            fileInput.value = "";
+            if (heicFiles.length === 0) return;
+
+            const heic2any = (await import("heic2any")).default;
+            for (let i = 0; i < heicFiles.length; i++) {
+                const file = heicFiles[i];
+                const entry = placeholders[i];
+                try {
+                    const converted = await heic2any({
+                        blob: file,
+                        toType: "image/jpeg",
+                        quality: 0.9,
+                    });
+                    const blob = Array.isArray(converted) ? converted[0] : converted;
+                    const preview = URL.createObjectURL(blob);
+                    entry.file = new File([blob], file.name.replace(/\.heic$/i, ".jpg"), {
+                        type: "image/jpeg",
+                    });
+                    entry.preview = preview;
+                    entry.status = "idle";
+                } catch (error) {
+                    console.error("HEIC conversion failed:", file.name, error);
+                    entry.status = "error";
+                }
+                const refs = cards.get(entry.id);
+                if (refs) {
+                    refs.image.src = entry.preview;
+                    refs.image.alt = entry.file.name;
+                }
+                updateUI();
+            }
+        };
+
+        const convertSingle = async (image: ConversionImage) => {
+            await new Promise<void>((resolve, reject) => {
+                const element = new window.Image();
+                element.crossOrigin = "anonymous";
+                element.onload = () => {
+                    canvas.width = element.width;
+                    canvas.height = element.height;
+                    const context = canvas.getContext("2d");
+                    if (!context) {
+                        resolve();
+                        return;
+                    }
+                    context.drawImage(element, 0, 0);
+                    const mime = `image/${selectedFormat}`;
+                    const qualityValue = selectedFormat === "png" ? undefined : quality;
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement("a");
+                                link.href = url;
+                                link.download = `${image.file.name.replace(/\.[^/.]+$/, "")}.${selectedFormat}`;
+                                link.click();
+                                URL.revokeObjectURL(url);
+                            }
+                            resolve();
+                        },
+                        mime,
+                        qualityValue,
+                    );
+                };
+                element.onerror = reject;
+                element.src = image.preview;
+            });
+        };
+
+        const convertOne = async (id: string) => {
+            const image = images.find((entry) => entry.id === id);
+            if (!image) return;
+            image.status = "converting";
+            updateUI();
+            try {
+                await convertSingle(image);
+                image.status = "done";
+            } catch {
+                image.status = "error";
+            }
+            updateUI();
+        };
+
+        const convertAll = async () => {
+            if (images.length === 0) return;
+            isBulkConverting = true;
+            for (const image of images) {
+                if (image.status === "idle") image.status = "converting";
+            }
+            updateUI();
+            for (const image of images) {
+                if (image.status !== "converting") continue;
+                try {
+                    await convertSingle(image);
+                    image.status = "done";
+                } catch {
+                    image.status = "error";
+                }
+                updateUI();
+            }
+            isBulkConverting = false;
+            updateUI();
+        };
+
+        const removeImage = (id: string) => {
+            const index = images.findIndex((image) => image.id === id);
+            if (index === -1) return;
+            const [image] = images.splice(index, 1);
+            if (image.preview) URL.revokeObjectURL(image.preview);
+            cards.get(id)?.card.remove();
+            cards.delete(id);
+            updateUI();
+        };
+
+        const clearAll = () => {
+            for (const image of images) {
+                if (image.preview) URL.revokeObjectURL(image.preview);
+            }
+            images.length = 0;
+            cards.clear();
+            grid.replaceChildren();
+            updateUI();
+        };
+
+        const resetStatuses = () => {
+            for (const image of images) image.status = "idle";
+            updateUI();
+        };
+
+        // Drag and drop
+        drop.addEventListener("dragenter", (event) => {
+            event.preventDefault();
+            isDragOver = true;
+            drop.classList.add("is-over");
+            dropTitle.textContent = "Drop images here";
+        });
+        drop.addEventListener("dragover", (event) => event.preventDefault());
+        drop.addEventListener("dragleave", () => {
+            isDragOver = false;
+            drop.classList.remove("is-over");
+            dropTitle.textContent = "Drag & drop images, or click to browse";
+        });
+        drop.addEventListener("drop", (event) => {
+            event.preventDefault();
+            isDragOver = false;
+            drop.classList.remove("is-over");
+            dropTitle.textContent = "Drag & drop images, or click to browse";
+            if (event.dataTransfer?.files) processFiles(event.dataTransfer.files);
+        });
+        drop.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files) processFiles(fileInput.files);
+        });
+
+        formats.addEventListener("click", (event) => {
+            const button = (event.target as HTMLElement).closest<HTMLElement>("[data-format]");
+            if (!button) return;
+            selectedFormat = button.dataset.format as ImageFormat;
+            for (const item of formats.querySelectorAll("[data-format]")) {
+                item.classList.toggle("is-active", item === button);
+            }
+            updateUI();
+        });
+
+        qualityInput.addEventListener("input", () => {
+            quality = Number.parseFloat(qualityInput.value);
+            qualityValue.textContent = `${Math.round(quality * 100)}%`;
+        });
+
+        convertAllBtn.addEventListener("click", () => {
+            const ready = images.filter((image) => image.status !== "loading");
+            const done = images.filter((image) => image.status === "done").length;
+            if (ready.length > 0 && done === ready.length) resetStatuses();
+            else convertAll();
+        });
+
+        clearAllBtn.addEventListener("click", clearAll);
+
+        updateUI();
+    }
+</script>

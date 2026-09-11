@@ -1,18 +1,27 @@
 {
   "name": "the-masonry",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-04-16",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "binding": "ASSETS",
-    "directory": "./dist",
-  },
-  "observability": {
-    "enabled": true,
+  "r2_buckets": [
+    {
+      "binding": "GALLERY",
+      "bucket_name": "the-masonry",
+      "remote": true
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "the-masonry-gallery-events",
+        "max_batch_size": 10
+      }
+    ]
   },
   "routes": [
     {
       "pattern": "brockshaffer.dev",
-      "custom_domain": true,
-    },
-  ],
+      "custom_domain": true
+    }
+  ]
 }

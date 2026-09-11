@@ -1,0 +1,130 @@
+---
+import { env } from "cloudflare:workers";
+import PageHeader from "@/components/PageHeader.astro";
+import Base from "@/layouts/Base.astro";
+import { type GalleryBucket, getPhotos, isLocalHost } from "@/lib/gallery";
+import { imageUrl, srcset } from "@/lib/images";
+
+const bucket = env.GALLERY as GalleryBucket;
+const gallery = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname) });
+---
+
+<Base
+    title="Gallery"
+    description="Photographs taken from a drone and from the ground."
+>
+    <div class="wrap">
+        <PageHeader
+            index="01"
+            kicker="Photography"
+            title="Gallery"
+            meta={`${gallery.length} photos`}
+        />
+    </div>
+
+    <div class="gallery-wrap section">
+        <div class="gallery">
+            {
+                gallery.map((p, i) => (
+                    <a class="gallery__item" href={`/gallery/${p.id}`}>
+                        <img
+                            src={imageUrl(p.key, {
+                                width: 800,
+                                height: 534,
+                                fit: "cover",
+                                gravity: "auto",
+                                format: "auto",
+                                quality: "medium-low",
+                            })}
+                            srcset={srcset(p.key, [400, 640, 960, 1280], {
+                                height: 534,
+                                fit: "cover",
+                                gravity: "auto",
+                                format: "auto",
+                                quality: "medium-low",
+                            })}
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            alt={p.id}
+                            loading={i < 6 ? "eager" : "lazy"}
+                            decoding="async"
+                        />
+                        <span class="gallery__name">{p.id}</span>
+                    </a>
+                ))
+            }
+        </div>
+    </div>
+</Base>
+
+<style>
+    .gallery-wrap {
+        width: 88vw;
+        margin-inline: auto;
+    }
+
+    .gallery {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .gallery__item {
+        position: relative;
+        overflow: hidden;
+        background: var(--bg-deep);
+        border: 1px solid var(--line-strong);
+    }
+
+    .gallery__item img {
+        width: 100%;
+        aspect-ratio: 3 / 2;
+        object-fit: cover;
+        transition: transform 0.25s ease;
+    }
+
+    .gallery__item:hover img,
+    .gallery__item:focus-visible img {
+        transform: scale(1.03);
+    }
+
+    .gallery__name {
+        position: absolute;
+        left: 0.5rem;
+        bottom: 0.5rem;
+        max-width: calc(100% - 1rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0.25rem 0.5rem;
+        background: var(--bg-deep);
+        border: 1px solid var(--line);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        color: var(--yellow);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .gallery__item:hover .gallery__name,
+    .gallery__item:focus-visible .gallery__name {
+        opacity: 1;
+    }
+
+    @media (min-width: 640px) {
+        .gallery {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .gallery {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 1440px) {
+        .gallery {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+</style>

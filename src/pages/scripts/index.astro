@@ -1,0 +1,149 @@
+---
+import PageHeader from "@/components/PageHeader.astro";
+import Base from "@/layouts/Base.astro";
+
+const tools = [
+    {
+        name: "Image converter",
+        href: "/scripts/imageconvert",
+        description: "Convert images between PNG, JPEG, and WebP, including HEIC/HEIF input.",
+        formats: "PNG / JPEG / WebP / HEIC",
+    },
+    {
+        name: "Contact sheet",
+        href: "/scripts/contactsheet",
+        description: "Generate a 4x3 contact sheet from up to 12 images.",
+        formats: "JPEG",
+    },
+];
+---
+
+<Base
+    title="Scripts"
+    description="Small browser tools for image work: format conversion and contact sheets."
+>
+    <div class="wrap">
+        <PageHeader
+            index="05"
+            kicker="Tools"
+            title="Scripts"
+            meta={`${tools.length} scripts`}
+        />
+    </div>
+
+    <div class="wrap section">
+        <table class="tool-table">
+            <thead>
+                <tr>
+                    <th scope="col">Script</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Formats</th>
+                    <th scope="col"><span class="tool-table__sr">Open</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {
+                    tools.map((tool) => (
+                        <tr>
+                            <td>
+                                <a class="tool-table__name" href={tool.href}>
+                                    {tool.name}
+                                </a>
+                            </td>
+                            <td>{tool.description}</td>
+                            <td class="tool-table__formats">{tool.formats}</td>
+                            <td class="tool-table__open">
+                                <a href={tool.href}>Open →</a>
+                            </td>
+                        </tr>
+                    ))
+                }
+            </tbody>
+        </table>
+
+        <p class="tool-table__note">
+            These run in your browser. Nothing is uploaded.
+        </p>
+    </div>
+</Base>
+
+<style>
+    .tool-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--line-strong);
+    }
+
+    .tool-table th,
+    .tool-table td {
+        text-align: left;
+        padding: 0.8rem 0.9rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.78rem;
+        vertical-align: top;
+    }
+
+    .tool-table th {
+        background: var(--panel);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        white-space: nowrap;
+    }
+
+    .tool-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .tool-table tbody tr:hover {
+        background: var(--panel-2);
+    }
+
+    .tool-table__name {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        color: var(--text);
+    }
+
+    .tool-table__name:hover {
+        color: var(--yellow);
+    }
+
+    .tool-table__formats {
+        color: var(--text-faint);
+        white-space: nowrap;
+    }
+
+    .tool-table__open {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .tool-table__open a {
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+    }
+
+    .tool-table__open a:hover {
+        color: var(--yellow);
+    }
+
+    .tool-table__sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .tool-table__note {
+        margin-top: 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        color: var(--text-faint);
+    }
+</style>

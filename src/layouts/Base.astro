@@ -1,0 +1,49 @@
+---
+import "@/styles/global.css";
+import Footer from "@/components/Footer.astro";
+import Navbar from "@/components/Navbar.astro";
+import { site } from "@/data/site";
+
+interface Props {
+    title: string;
+    description?: string;
+}
+
+const { title, description = "" } = Astro.props;
+const fullTitle = title ? `${title} · ${site.name}` : site.name;
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{fullTitle}</title>
+        <meta name="description" content={description} />
+        <meta name="generator" content={Astro.generator} />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="preconnect"
+            href="https://images.brockshaffer.dev"
+            crossorigin
+        />
+        <link rel="dns-prefetch" href="https://images.brockshaffer.dev" />
+        <script is:inline>
+            document.documentElement.classList.add("js");
+        </script>
+    </head>
+    <body>
+        <a class="skip-link" href="#main">Skip to content</a>
+        <Navbar />
+        <main id="main">
+            <slot />
+        </main>
+        <Footer />
+    </body>
+</html>

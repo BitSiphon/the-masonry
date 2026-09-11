@@ -1,0 +1,186 @@
+---
+import PageHeader from "@/components/PageHeader.astro";
+import { site } from "@/data/site";
+import Base from "@/layouts/Base.astro";
+
+const experience = [
+    {
+        org: "The Ohio State University",
+        role: "Student, electrical and computer engineering",
+        when: "NOW",
+        note: "I study circuits, systems, and the code that controls them.",
+    },
+    {
+        org: "Team Bad Robots (FRC)",
+        role: "Team member",
+        when: "JAN 2025 - MAY 2026",
+        note: "I built and programmed competition robots with a team.",
+    },
+    {
+        org: "Outcomes",
+        role: "Software engineering intern",
+        when: "APR-MAY 2025",
+        note: "I saw how a software company works. I learned about large codebases, AGILE, and how teams plan work.",
+    },
+    {
+        org: "FST Logistics",
+        role: "IT intern",
+        when: "JAN-MAR 2025",
+        note: "I learned communication and support skills in a technology team.",
+    },
+    {
+        org: "Young Professionals Academy",
+        role: "Student",
+        when: "SPRING 2025",
+        note: "A work-based learning program. It placed me in the two internships above.",
+    },
+];
+---
+
+<Base
+    title="About"
+    description="Brock Shaffer, electrical and computer engineering student at The Ohio State University, drone pilot, and photographer."
+>
+    <div class="wrap">
+        <PageHeader index="02" kicker="About" title="About" />
+    </div>
+
+    <div class="wrap section">
+        <div class="about__body">
+            <p class="about__lead">
+                I'm Brock. I study electrical and computer engineering at {
+                    site.org
+                }.
+            </p>
+            <p>
+                I make things sometimes and occasionally post them online on a
+                place like this site.
+            </p>
+        </div>
+    </div>
+
+    <div class="wrap section" id="experience">
+        <p class="label"><span class="idx">03</span> Experience</p>
+        <div class="log">
+            {
+                experience.map((e) => (
+                    <div class="log__row">
+                        <div class="log__main">
+                            <div class="log__org">{e.org}</div>
+                            <div class="log__role">{e.role}</div>
+                            <p class="log__note">{e.note}</p>
+                        </div>
+                        <span class="log__when">{e.when}</span>
+                    </div>
+                ))
+            }
+        </div>
+    </div>
+
+    <div class="wrap section" id="contact">
+        <div class="panel contact">
+            <p class="label"><span class="idx">04</span> Contact</p>
+            <h2 class="contact__title">CONTACT</h2>
+            <div class="contact__links">
+                <a class="btn" href={`mailto:${site.email}`}>{site.email}</a>
+                <a
+                    class="btn btn--ghost"
+                    href={site.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    GitHub
+                </a>
+                <a
+                    class="btn btn--ghost"
+                    href={site.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    LinkedIn
+                </a>
+            </div>
+        </div>
+    </div>
+</Base>
+
+<style>
+    .about__lead {
+        font-size: 1.15rem;
+        color: var(--text);
+        line-height: 1.5;
+    }
+
+    .about__body p {
+        margin-top: 1rem;
+        max-width: 46rem;
+    }
+
+    .log {
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--line-strong);
+    }
+
+    .log__row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.25rem 1.25rem;
+        padding: 1.1rem 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .log__org {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        color: var(--text);
+    }
+
+    .log__role {
+        margin-top: 0.15rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+    }
+
+    .log__note {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        max-width: 44rem;
+    }
+
+    .log__when {
+        font-size: 0.64rem;
+        color: var(--yellow);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .contact {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .contact__title {
+        font-size: clamp(1.8rem, 5vw, 3rem);
+    }
+
+    .contact__links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    @media (min-width: 900px) {
+        .log__row {
+            grid-template-columns: 1fr auto;
+        }
+
+        .log__when {
+            text-align: right;
+        }
+    }
+</style>
