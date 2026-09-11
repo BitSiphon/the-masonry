@@ -55,7 +55,7 @@ const formatUploaded = (raw: string | null) => {
                             format: "auto",
                             quality: "medium-high",
                         })}
-                        sizes="(max-width: 1024px) 100vw, 66vw"
+                        sizes="(max-width: 1024px) 100vw, 70vw"
                         alt={photo.id}
                         loading="eager"
                         fetchpriority="high"
@@ -133,6 +133,10 @@ const formatUploaded = (raw: string | null) => {
 </Base>
 
 <style>
+    .record {
+        max-width: min(96rem, 96vw);
+    }
+
     .record__head {
         display: flex;
         justify-content: space-between;
@@ -158,7 +162,7 @@ const formatUploaded = (raw: string | null) => {
         width: 100%;
         object-fit: contain;
         background: #000;
-        max-height: 80vh;
+        max-height: 88vh;
     }
 
     .record__cap {
@@ -198,7 +202,7 @@ const formatUploaded = (raw: string | null) => {
 
     @media (min-width: 900px) {
         .record__grid {
-            grid-template-columns: 1fr 22rem;
+            grid-template-columns: minmax(0, 1fr) 20rem;
             align-items: start;
         }
     }

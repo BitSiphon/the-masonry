@@ -26,7 +26,11 @@ const gallery = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname)
         <div class="gallery">
             {
                 gallery.map((p, i) => (
-                    <a class="gallery__item" href={`/gallery/${p.id}`}>
+                    <a
+                        class="gallery__item"
+                        href={`/gallery/${p.id}`}
+                        style={`--reveal-delay: ${Math.min(i, 5) * 60}ms`}
+                    >
                         <img
                             src={imageUrl(p.key, {
                                 width: 800,
@@ -73,6 +77,9 @@ const gallery = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname)
         overflow: hidden;
         background: var(--bg-deep);
         border: 1px solid var(--line-strong);
+        transition:
+            opacity 0.5s ease var(--reveal-delay, 0ms),
+            transform 0.5s ease var(--reveal-delay, 0ms);
     }
 
     .gallery__item img {
@@ -127,4 +134,56 @@ const gallery = await getPhotos(bucket, { fresh: isLocalHost(Astro.url.hostname)
             grid-template-columns: repeat(4, 1fr);
         }
     }
+
+    /* reveal on scroll, only when JS is available */
+    :global(.js) .gallery__item {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    :global(.js) .gallery__item.in {
+        opacity: 1;
+        transform: none;
+    }
 </style>
+
+<script>
+    const items = document.querySelectorAll(".gallery__item");
+    if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((e) => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add("in");
+                        io.unobserve(e.target);
+                    }
+                });
+            },
+            { threshold: 0.1 },
+        );
+        items.forEach((el) => io.observe(el));
+    } else {
+        items.forEach((el) => el.classList.add("in"));
+    }
+
+    const SCROLL_KEY = "gallery:scroll";
+
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved !== null) {
+        sessionStorage.removeItem(SCROLL_KEY);
+        const nav = performance.getEntriesByType("navigation")[0];
+        const fromPhoto =
+            nav?.type === "back_forward" ||
+            document.referrer.includes("/gallery/");
+        const y = Number.parseInt(saved, 10);
+        if (fromPhoto && !Number.isNaN(y)) {
+            requestAnimationFrame(() => window.scrollTo(0, y));
+        }
+    }
+
+    items.forEach((link) => {
+        link.addEventListener("click", () => {
+            sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+        });
+    });
+</script>
